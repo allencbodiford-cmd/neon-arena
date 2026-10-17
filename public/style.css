@@ -30,7 +30,7 @@ body {
 }
 
 .game-shell {
-  width: min(960px, 96vw);
+  width: min(980px, 96vw);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -98,6 +98,50 @@ h1 {
     inset 0 0 40px rgba(106, 168, 255, 0.1);
 }
 
+.bottom-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: rgba(10, 17, 29, 0.72);
+  border: 1px solid rgba(139, 176, 255, 0.32);
+  border-radius: 14px;
+  padding: 10px 14px;
+}
+
+#statusText {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.leaderboard {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.leader-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.leader-row.you {
+  border-color: rgba(94, 231, 255, 0.6);
+  box-shadow: 0 0 20px rgba(94, 231, 255, 0.2);
+}
+
 .legend {
   display: flex;
   flex-wrap: wrap;
@@ -109,6 +153,32 @@ h1 {
   color: var(--muted);
 }
 
+.race-banner {
+  position: fixed;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  padding: 18px 32px;
+  border-radius: 22px;
+  background: rgba(7, 15, 26, 0.8);
+  border: 1px solid rgba(94, 231, 255, 0.4);
+  box-shadow: 0 0 40px rgba(94, 231, 255, 0.2);
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  z-index: 30;
+}
+
+.race-banner.go {
+  color: var(--green);
+  box-shadow: 0 0 50px rgba(122, 229, 130, 0.25);
+}
+
+.hidden {
+  display: none;
+}
+
 .overlay {
   position: fixed;
   inset: 0;
@@ -116,6 +186,7 @@ h1 {
   place-items: center;
   background: rgba(6, 11, 19, 0.6);
   backdrop-filter: blur(6px);
+  z-index: 40;
 }
 
 .card {
@@ -159,8 +230,4 @@ h1 {
   text-transform: uppercase;
   cursor: pointer;
   box-shadow: 0 0 26px rgba(94, 231, 255, 0.4);
-}
-
-.hidden {
-  display: none;
 }

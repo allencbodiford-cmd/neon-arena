@@ -7,6 +7,9 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+const RACE_LAPS = 3;
+const COUNTDOWN_SECONDS = 3;
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 const WORLD = {
@@ -20,6 +23,14 @@ const WORLD = {
 };
 
 const players = new Map();
+let raceState = {
+  phase: 'countdown',
+  countdown: COUNTDOWN_SECONDS,
+  laps: RACE_LAPS,
+  winner: null,
+  startedAt: 0,
+  finishedAt: null,
+};
 
 function randomColor() {
   const palette = ['#ff4d6d', '#ffb703', '#48cae4', '#90be6d', '#f72585', '#7bdff2', '#ffd166', '#c77dff'];
@@ -47,31 +58,91 @@ function makePlayer(id, name) {
     y: WORLD.cy + Math.sin(spawnAngle) * 500,
     angle: spawnAngle + Math.PI / 2,
     speed: 0,
-    lap: 1,
     progress: 0.15,
     lastProgress: 0.15,
-    bestLap: 0,
+    completedLaps: 0,
+    finishedAt: null,
     input: {},
   };
 }
 
-function dragPlayer(player) {
-  const dx = player.x - WORLD.cx;
-  const dy = player.y - WORLD.cy;
-  const dist = Math.hypot(dx, dy);
+function broadcastState() {
+  const snapshot = Array.from(players.values()).map((player) => ({
+    id: player.id,
+    name: player.name,
+    color: player.color,
+    x: player.x,
+    y: player.y,
+    angle: player.angle,
+    speed: player.speed,
+    progress: player.progress,
+    completedLaps: player.completedLaps,
+    finishedAt: player.finishedAt,
+  }));
 
-  if (dist > WORLD.outerR - 30 || dist < WORLD.innerR + 30) {
-    player.speed *= 0.93;
-  } else {
-    player.speed *= 0.986;
+  io.emit('state', {
+    players: snapshot,
+    world: WORLD,
+    race: { ...raceState },
+  });
+}
+
+function finishRace(player) {
+  if (raceState.phase !== 'racing' || raceState.winner) return;
+
+  raceState.phase = 'finished';
+  raceState.finishedAt = Date.now();
+  raceState.winner = player.name;
+  player.finishedAt = raceState.finishedAt;
+  broadcastState();
+}
+
+function startRaceCountdown() {
+  raceState = {
+    phase: 'countdown',
+    countdown: COUNTDOWN_SECONDS,
+    laps: RACE_LAPS,
+    winner: null,
+    startedAt: 0,
+    finishedAt: null,
+  };
+
+  for (const player of players.values()) {
+    player.completedLaps = 0;
+    player.finishedAt = null;
+    player.lastProgress = player.progress || 0.15;
+    player.speed = 0;
   }
 
-  player.x = clamp(player.x, 60, WORLD.width - 60);
-  player.y = clamp(player.y, 60, WORLD.height - 60);
+  broadcastState();
+
+  const timer = setInterval(() => {
+    if (raceState.phase !== 'countdown') {
+      clearInterval(timer);
+      return;
+    }
+
+    if (raceState.countdown > 0) {
+      raceState.countdown -= 1;
+      broadcastState();
+      return;
+    }
+
+    raceState.phase = 'racing';
+    raceState.startedAt = Date.now();
+    raceState.countdown = 0;
+    broadcastState();
+    clearInterval(timer);
+  }, 1000);
 }
 
 function updatePlayer(player, input) {
   if (!player) return;
+
+  if (raceState.phase !== 'racing') {
+    player.speed *= 0.82;
+    return;
+  }
 
   const accel = 0.32;
   const brake = 0.52;
@@ -111,7 +182,11 @@ function updatePlayer(player, input) {
   if (player.speed > 1.5) {
     const delta = progress - player.lastProgress;
     if (delta < -0.7) {
-      player.lap += 1;
+      player.completedLaps += 1;
+
+      if (player.completedLaps >= RACE_LAPS) {
+        finishRace(player);
+      }
     }
     player.lastProgress = progress;
   }
@@ -124,8 +199,6 @@ function updatePlayer(player, input) {
   if (trackDist > WORLD.roadW / 2) {
     player.speed *= 0.94;
   }
-
-  dragPlayer(player);
 }
 
 io.on('connection', (socket) => {
@@ -137,6 +210,10 @@ io.on('connection', (socket) => {
     id: socket.id,
     name: player.name,
   });
+
+  if (raceState.phase === 'finished') {
+    startRaceCountdown();
+  }
 
   socket.on('setName', (name) => {
     if (typeof name === 'string' && name.trim()) {
@@ -157,6 +234,13 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     players.delete(socket.id);
+    if (players.size === 0) {
+      raceState.phase = 'countdown';
+      raceState.countdown = COUNTDOWN_SECONDS;
+      raceState.winner = null;
+      raceState.finishedAt = null;
+      broadcastState();
+    }
   });
 });
 
@@ -165,22 +249,11 @@ setInterval(() => {
     updatePlayer(player, player.input || {});
   }
 
-  const snapshot = Array.from(players.values()).map((player) => ({
-    id: player.id,
-    name: player.name,
-    color: player.color,
-    x: player.x,
-    y: player.y,
-    angle: player.angle,
-    speed: player.speed,
-    lap: player.lap,
-    progress: player.progress,
-  }));
-
-  io.emit('state', { players: snapshot, world: WORLD });
+  broadcastState();
 }, 1000 / 60);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Racer server running on http://localhost:${PORT}`);
+  startRaceCountdown();
 });

@@ -7,6 +7,9 @@ const elements = {
   speed: document.getElementById('speed'),
   lap: document.getElementById('lap'),
   position: document.getElementById('position'),
+  status: document.getElementById('statusText'),
+  leaderboard: document.getElementById('leaderboard'),
+  raceBanner: document.getElementById('raceBanner'),
   namePrompt: document.getElementById('namePrompt'),
   playerName: document.getElementById('playerName'),
   joinBtn: document.getElementById('joinBtn'),
@@ -24,6 +27,7 @@ const state = {
   players: [],
   localId: null,
   localName: 'Racer 01',
+  race: { phase: 'countdown', countdown: 3, laps: 3, winner: null },
 };
 
 function clamp(value, min, max) {
@@ -63,21 +67,90 @@ socket.on('welcome', (payload) => {
 socket.on('state', (snapshot) => {
   state.world = snapshot.world;
   state.players = snapshot.players;
-  syncHUD();
+  state.race = snapshot.race;
+  updateUI();
 });
 
-function syncHUD() {
+function updateUI() {
   const me = state.players.find((p) => p.id === state.localId);
+  updateHUD(me);
+  updateRaceBanner();
+  updateLeaderboard();
+}
+
+function updateHUD(me) {
   if (!me) return;
 
   const speedValue = Math.round(Math.abs(me.speed) * 18);
   elements.speed.textContent = `${speedValue} km/h`;
 
-  elements.lap.textContent = `Lap ${me.lap}`;
+  const laps = state.race.laps || 3;
+  const lapDisplay = state.race.phase === 'finished'
+    ? laps
+    : Math.min(me.completedLaps + 1, laps);
 
-  const sorted = [...state.players].sort((a, b) => b.lap - a.lap || a.progress - b.progress);
+  elements.lap.textContent = `Lap ${lapDisplay}/${laps}`;
+
+  const sorted = [...state.players].sort((a, b) => {
+    const diff = (b.completedLaps || 0) - (a.completedLaps || 0);
+    if (diff !== 0) return diff;
+    return (a.finishedAt || Infinity) - (b.finishedAt || Infinity);
+  });
+
   const myPos = sorted.findIndex((p) => p.id === state.localId) + 1;
   elements.position.textContent = `P${myPos}`;
+
+  const phaseText = state.race.phase === 'countdown'
+    ? `Race starts in ${Math.max(state.race.countdown, 0)}`
+    : state.race.phase === 'finished'
+      ? `Winner: ${state.race.winner || 'Unknown'}`
+      : 'Race in progress';
+
+  elements.status.textContent = phaseText;
+}
+
+function updateRaceBanner() {
+  const race = state.race;
+  if (race.phase === 'countdown') {
+    const value = race.countdown > 0 ? String(race.countdown) : 'GO';
+    elements.raceBanner.textContent = value;
+    elements.raceBanner.classList.remove('hidden');
+    elements.raceBanner.classList.toggle('go', value === 'GO');
+    return;
+  }
+
+  if (race.phase === 'finished') {
+    const winner = race.winner ? `${race.winner} wins!` : 'Race complete!';
+    elements.raceBanner.textContent = winner;
+    elements.raceBanner.classList.remove('hidden');
+    elements.raceBanner.classList.remove('go');
+    return;
+  }
+
+  elements.raceBanner.classList.add('hidden');
+}
+
+function updateLeaderboard() {
+  const sorted = [...state.players].sort((a, b) => {
+    const diff = (b.completedLaps || 0) - (a.completedLaps || 0);
+    if (diff !== 0) return diff;
+    return (a.finishedAt || Infinity) - (b.finishedAt || Infinity);
+  });
+
+  elements.leaderboard.innerHTML = sorted
+    .slice(0, 4)
+    .map((player, index) => {
+      const isYou = player.id === state.localId;
+      const laps = player.completedLaps || 0;
+      return `
+        <div class="leader-row ${isYou ? 'you' : ''}">
+          <span>#${index + 1}</span>
+          <span>${player.name}</span>
+          <span>${laps}/${state.race.laps || 3}</span>
+        </div>
+      `;
+    })
+    .join('');
 }
 
 elements.joinBtn.addEventListener('click', () => {
@@ -115,35 +188,32 @@ function drawTrack() {
   ctx.fillRect(0, 0, state.world.width, state.world.height);
 
   ctx.beginPath();
-  ctx.ellipse(cx, cy, outerR, outerR * 0.55, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy, outerR, outerR * 0.56, 0, 0, Math.PI * 2);
   ctx.fillStyle = '#1f2d42';
   ctx.fill();
 
   ctx.beginPath();
-  ctx.ellipse(cx, cy, innerR, innerR * 0.55, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy, innerR, innerR * 0.56, 0, 0, Math.PI * 2);
   ctx.fillStyle = '#0c1824';
   ctx.fill();
 
   ctx.beginPath();
-  ctx.ellipse(cx, cy, outerR, outerR * 0.55, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy, outerR, outerR * 0.56, 0, 0, Math.PI * 2);
   ctx.strokeStyle = 'rgba(255,255,255,0.45)';
   ctx.lineWidth = 6;
   ctx.stroke();
 
   ctx.beginPath();
-  ctx.ellipse(cx, cy, innerR, innerR * 0.55, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy, innerR, innerR * 0.56, 0, 0, Math.PI * 2);
   ctx.strokeStyle = 'rgba(106, 223, 255, 0.45)';
   ctx.lineWidth = 5;
   ctx.stroke();
 
-  const startX = cx + outerR * 0.95;
-  const startY = cy;
-
   ctx.beginPath();
-  ctx.moveTo(startX, startY - 42);
-  ctx.lineTo(startX, startY + 42);
+  ctx.moveTo(cx + outerR * 0.97, cy - 48);
+  ctx.lineTo(cx + outerR * 0.97, cy + 48);
   ctx.strokeStyle = '#f8f9fa';
-  ctx.lineWidth = 10;
+  ctx.lineWidth = 12;
   ctx.stroke();
 
   ctx.restore();

@@ -1,12 +1,13 @@
-# Neon Arena
+# Neon Apex
 
-Neon Arena is a polished top-down multiplayer arcade racing game built with Node.js, Express, and Socket.IO.
+Neon Apex is a polished top-down multiplayer arcade racing game built with Node.js, Express, and Socket.IO.
 
 Features
-- Real-time multiplayer with Socket.IO
-- Top-down neon-styled racetrack
-- Steering, throttle, and braking
-- Lap tracking, speed HUD, and minimap
+- Real-time multiplayer racing using Socket.IO
+- Countdown start sequence and winner announcement
+- Lap tracking with live leaderboard
+- Speed HUD, minimap, and glowing neon aesthetic
+- Single-track racing loop built for local play
 
 Quick start
 
@@ -23,16 +24,22 @@ Quick start
 
    npm start
 
-4. Open your browser and go to:
+4. Open your browser and visit:
 
    http://localhost:3000
 
-Notes
-- You can set PORT environment variable to change the server port.
-- For development with auto-reload, install nodemon and run `npm run dev`.
+Controls
+- W / Arrow Up = throttle
+- S / Arrow Down = brake
+- A / Arrow Left = steer left
+- D / Arrow Right = steer right
 
-Next improvements
-- Lobbies and rooms
-- Track variations and obstacles
-- Powerups and collisions
-- Server authoritative physics and anti-cheat
+Notes
+- The game is designed for local multiplayer sessions or multiple browser tabs/devices on the same network.
+- You can change the port with the PORT environment variable.
+
+Future upgrades
+- Multiple maps
+- Power-ups and obstacles
+- More advanced physics and drifting
+- Lobby and room chat
