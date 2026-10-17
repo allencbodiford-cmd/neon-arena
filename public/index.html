@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neon Apex</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/socket.io/socket.io.js"></script>
+  </head>
+  <body>
+    <div class="game-shell">
+      <div class="titlebar">
+        <div class="brand">
+          <span class="dot"></span>
+          <h1>Neon Apex</h1>
+        </div>
+        <div class="hud-panel">
+          <span id="speed">0 km/h</span>
+          <span id="lap">Lap 1</span>
+          <span id="position">P1</span>
+        </div>
+      </div>
+
+      <canvas id="gameCanvas" width="960" height="640"></canvas>
+
+      <div id="namePrompt" class="overlay">
+        <div class="card">
+          <h2>Choose a driver name</h2>
+          <input id="playerName" maxlength="18" value="Racer 01" />
+          <button id="joinBtn">Start Race</button>
+        </div>
+      </div>
+
+      <div class="legend">
+        <span>W / ↑ = throttle</span>
+        <span>S / ↓ = brake</span>
+        <span>A / ← = steer left</span>
+        <span>D / → = steer right</span>
+      </div>
+    </div>
+
+    <script src="/game.js"></script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "neon-arena",
+  "version": "0.1.0",
+  "description": "Polished multiplayer browser racing game built with Express and Socket.IO",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": ["racing", "multiplayer", "socket.io", "canvas"],
+  "author": "allencbodiford-cmd",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
+  }
+}
